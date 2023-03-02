@@ -33,6 +33,7 @@ async def video_page(request: Request, code: str):
         logger.info(f"Video page {code} visited. Visitor: {request.client.host}")
         return templates.TemplateResponse("video_template.html", {"request": request, "code": code})
     else:
+        logger.info(f"Video page with invalid code: {code} visited. Redirecting to main page")
         return RedirectResponse(url='/')
 
 

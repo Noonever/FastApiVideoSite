@@ -67,4 +67,3 @@ def create_video(text: str):
     generate_video(text=text, code=code)
     add_video_to_data(code=code)
     return code
-# create_video(text="her")

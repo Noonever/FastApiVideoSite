@@ -1,7 +1,13 @@
 from settings import PROCESSED_VIDEO_DIR, PROCESSED_VIDEO_DATA
+import os
+import sys
+from loguru import logger
 
-# function that deletes all video_files from proceesed_video_dir and clears the data using pathlib
-def clear_processed_video_dir():
+def main(*args, **kwargs):
+    print(args)
+    print(kwargs)
+
+def delete_processed_videos():
     for filename in PROCESSED_VIDEO_DIR.glob('*.mp4'):
         filename.unlink()
     
@@ -9,5 +15,14 @@ def clear_processed_video_dir():
     with PROCESSED_VIDEO_DATA.open('w') as f:
         f.write('[]')
 
-clear_processed_video_dir()
-
+def runserver_uvicorn():
+    logger.info('Uvicorn_server started')
+    os.system('uvicorn main:app --reload --log-level critical')
+    
+if __name__ == '__main__':
+    command= " ".join( sys.argv[1:] )
+    command_mapping = {
+        'delete': delete_processed_videos,
+        'runserver': runserver_uvicorn,
+    }
+    command_mapping.get(command, lambda: logger.error(f'Unknown command: {command}'))()
