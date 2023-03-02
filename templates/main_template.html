@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link href="{{ url_for('static', path='/styles.css') }}" rel="stylesheet" />
+    <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', path='/favicon.ico') }}"/>
+    <script>
+        document.addEventListener('DOMContentLoaded', (event) => {
+            document.getElementById("nameForm").addEventListener("submit", function (e) {
+            e.preventDefault() // Cancel the default action
+            var name = document.getElementById('name').value;
+            fetch('/generate/' + name, {
+                    method: 'POST', redirect: 'follow'
+                })
+                .then(submitted())
+                .then(response => {
+                    if (response.redirected) {
+                        window.location.href = response.url;
+                    }
+                })
+                .catch(error => {
+                    console.error(error);
+                });
+            });
+        });
+
+        var sleep = async (delay) => new Promise((resolve) => setTimeout(resolve, delay))
+
+        var changeText = async (element) => {
+            text = element;
+            text.style.color = 'rgba(0, 0, 0, 0)';
+            await sleep(1000);
+            text.textContent = "MAGIC BEGINS";
+            text.style.color = 'rgba(255, 99, 71, 255)';
+            await sleep(3000);
+            while (true) {
+                text.style.color = 'rgba(0, 0, 0, 0)';
+                await sleep(1000);
+                text.textContent = "MAGIC BEGINS first while";
+                text.style.color = 'rgb(0, 89, 255)';
+                await sleep(3000);
+                text.style.color = 'rgba(0, 0, 0, 0)';
+                await sleep(1000);
+                text.textContent = "MAGIC BEGINS second while";
+                text.style.color = 'rgb(0, 255, 213)';
+                await sleep(3000);
+            }
+        }
+
+        async function submitted() {
+            console.log("subminnterasf");
+            var text = document.getElementById("changing");
+            changeText(text)
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <p class="content" id="changing">YOUR NAME</p>
+    </div>
+    <div class="container">
+        <form id="nameForm">
+            <input type="text" id="name" name="name">
+            <button type="submit">YOU NEED TO HEAR THIS</button>
+        </form>
+    </div>
+</body>
+</html>
