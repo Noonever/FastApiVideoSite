@@ -5,6 +5,7 @@ from loguru import logger
 from random import choices
 from string import ascii_uppercase
 import json
+import time
 
 from settings import *
 
@@ -64,6 +65,7 @@ def generate_video(text: str, code: str):
 
 def create_video(text: str):
     code = genetate_unique_code()
-    generate_video(text=text, code=code)
+    # generate_video(text=text, code=code)
+    time.sleep(10)
     add_video_to_data(code=code)
     return code

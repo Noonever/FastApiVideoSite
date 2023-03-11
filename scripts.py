@@ -3,9 +3,6 @@ import os
 import sys
 from loguru import logger
 
-def main(*args, **kwargs):
-    print(args)
-    print(kwargs)
 
 def delete_processed_videos():
     for filename in PROCESSED_VIDEO_DIR.glob('*.mp4'):
@@ -14,6 +11,7 @@ def delete_processed_videos():
     PROCESSED_VIDEO_DATA.unlink()
     with PROCESSED_VIDEO_DATA.open('w') as f:
         f.write('[]')
+    logger.info('Processed videos deleted')
 
 def runserver_uvicorn():
     logger.info('Uvicorn_server started')
