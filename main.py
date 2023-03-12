@@ -14,8 +14,6 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 templates = Jinja2Templates(directory="templates")
 
-generate_request_counter = 0
-
 @app.get("/", response_class=HTMLResponse)
 async def main_page(request: Request):
     logger.info(f'Main page visited. Visitor: {request.client.host}')
@@ -24,9 +22,7 @@ async def main_page(request: Request):
 
 @app.post("/generate/{name}")
 async def generate_request(name: str):
-    global i
-    i += 1
-    logger.info(f'Generate request {generate_request_counter} received')
+    logger.info(f'Generate request with name: {name}')
     code = create_video(name)
     return RedirectResponse(url=f'/{code}', status_code=status.HTTP_303_SEE_OTHER)
 

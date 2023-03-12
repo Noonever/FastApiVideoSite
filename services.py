@@ -28,6 +28,7 @@ def add_video_to_data(code: str):
         json.dump(data, f, indent=4)
     logger.info(f'Video {code} added to data.')
 
+
 def genetate_unique_code():
 
         length = 6
@@ -41,7 +42,7 @@ def genetate_unique_code():
 
 
 def generate_video(text: str, code: str):
-
+    logger.info(f'Started video generation with text: {text} and code: {code}.')
     processed_video_file_path = f'{PROCESSED_VIDEO_DIR}\\{code}.mp4'
     source_video_file_path = f'{SOURCE_VIDEO_DIR}\\test.mp4'
     text_name = text.lower().capitalize() + ','
@@ -63,9 +64,10 @@ def generate_video(text: str, code: str):
 
     logger.info(f'Clip {code} generated.')
 
+
 def create_video(text: str):
+    logger.info(f'Started video creation with text: {text}.')
     code = genetate_unique_code()
-    # generate_video(text=text, code=code)
-    time.sleep(10)
+    generate_video(text=text, code=code)
     add_video_to_data(code=code)
     return code
