@@ -6,7 +6,7 @@ from loguru import logger
 
 from settings import PROCESSED_VIDEO_DIR
 
-from services import video_exisits, create_video
+from services import get_video_status, create_generation_request
 
 app = FastAPI()
 
@@ -22,14 +22,16 @@ async def main_page(request: Request):
 
 @app.post("/generate/{name}")
 async def generate_request(name: str):
-    logger.info(f'Generate request with name: {name}')
-    code = create_video(name)
+    random_text = ", hello!"
+    text = name + random_text # TODO text = generate_text(name)
+    code = create_generation_request(text=text)
     return RedirectResponse(url=f'/{code}', status_code=status.HTTP_303_SEE_OTHER)
 
 
 @app.get('/{code}', response_class=HTMLResponse)
-async def video_page(request: Request, code: str):
-    if video_exisits(code):
+async def get_video_page(request: Request, code: str):
+    video_status = get_video_status(code=code)
+    if video_status == 0:
         logger.info(f"Video page {code} visited. Visitor: {request.client.host}")
         return templates.TemplateResponse("video_template.html", {"request": request, "code": code})
     else:

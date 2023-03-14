@@ -15,7 +15,7 @@ def delete_processed_videos():
 
 def runserver_uvicorn():
     logger.info('Uvicorn_server started')
-    os.system('uvicorn main:app --reload --log-level critical')
+    os.system('uvicorn main:app --reload ')
     
 if __name__ == '__main__':
     command= " ".join( sys.argv[1:] )

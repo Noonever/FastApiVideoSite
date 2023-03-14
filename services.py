@@ -1,73 +1,71 @@
-from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
-from moviepy.editor import *
-
-from loguru import logger
 from random import choices
 from string import ascii_uppercase
-import json
-import time
-
+import orjson
+from loguru import logger
 from settings import *
 
 
-def read_json(file_path):
-    with open(file_path, 'r') as f:
-        data = json.load(f)
-    return data
+def video_is_being_processed(code: str) -> bool:
+    return REDIS_CLIENT.hexists(REQUEST_QUEUE_HASH, code)
 
 
-def video_exisits(code: str):
-    data = read_json(PROCESSED_VIDEO_DATA)
-    return code in data
+def video_is_recently_created(code: str) -> bool:
+    return REDIS_CLIENT.sismember(RECENT_VIDEOS_SET, code)
 
 
-def add_video_to_data(code: str):
-    data = read_json(PROCESSED_VIDEO_DATA)
-    data.append(code)
-    with open(PROCESSED_VIDEO_DATA, 'w') as f:
-        json.dump(data, f, indent=4)
-    logger.info(f'Video {code} added to data.')
+def video_is_stored(code: str) -> bool:
+    with open(PROCESSED_VIDEO_DATA, 'rb') as f:
+        stored_videos = orjson.loads(f.read())
+    return code in stored_videos
 
 
-def genetate_unique_code():
-
-        length = 6
-
-        while True:
-            code = ''.join(choices(ascii_uppercase, k=length))
-            if not video_exisits(code=code):
-                break
-
-        return code
-
-
-def generate_video(text: str, code: str):
-    logger.info(f'Started video generation with text: {text} and code: {code}.')
-    processed_video_file_path = f'{PROCESSED_VIDEO_DIR}\\{code}.mp4'
-    source_video_file_path = f'{SOURCE_VIDEO_DIR}\\test.mp4'
-    text_name = text.lower().capitalize() + ','
-    text_to_input = text_name + " hello!"
-
-    clip = VideoFileClip(source_video_file_path)
-
-    txt_clip = TextClip(text_to_input, fontsize=110, color='red', font='Calibri-Bold', stroke_width=7, stroke_color='black')
-    txt_clip = txt_clip.set_pos('center')
-
-    fps = clip.fps
-
-    final_clip = CompositeVideoClip([clip, txt_clip])
-    final_clip.duration = clip.duration
-
-    logger.info(f'Started clip generation with code: {code}, text: {text_to_input}.')
-
-    final_clip.write_videofile(processed_video_file_path, fps=fps, threads=4, logger=None)
-
-    logger.info(f'Clip {code} generated.')
+def get_video_status(code: str) -> int:
+    """
+    Returns a video status by video code.
+    """
+    if video_is_being_processed(code):
+        return 2
+    elif video_is_recently_created(code) or video_is_stored(code):
+        return 0
+    else:
+        return 1
 
 
-def create_video(text: str):
-    logger.info(f'Started video creation with text: {text}.')
-    code = genetate_unique_code()
-    generate_video(text=text, code=code)
-    add_video_to_data(code=code)
+def genetate_unique_code() -> str:
+    """
+    Generates and returns a unique code for a new video
+    """
+    length = 6
+
+    while True:
+        code = ''.join(choices(ascii_uppercase, k=length))
+        video_status = get_video_status(code=code)
+        if video_status == 1:
+            break
+
     return code
+
+
+def create_generation_request(text: str) -> str:
+    """
+    Returns code of a video
+    """
+    code = genetate_unique_code()
+    REDIS_CLIENT.rpush(REQUEST_QUEUE_LIST, code)
+    REDIS_CLIENT.hset(REQUEST_QUEUE_HASH, code, text)
+    return code
+
+# Testing
+code_list = []
+while True:
+    command = input("command:")
+    if command == "st":
+        for code in code_list:
+            logger.info(f"Code: {code}, status: {get_video_status(code)}")
+    elif command =="red":
+        logger.debug(f"Generated: {REDIS_CLIENT.smembers(RECENT_VIDEOS_SET)}")
+        logger.debug(f"Queue: {REDIS_CLIENT.llen(REQUEST_QUEUE_LIST)}")
+        logger.debug(f"Queue hash: {REDIS_CLIENT.hgetall(REQUEST_QUEUE_HASH)}")
+    else:
+        new_code = create_generation_request(command)
+        code_list.append(new_code)
