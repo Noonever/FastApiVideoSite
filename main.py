@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request, status
-from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from loguru import logger
@@ -14,18 +15,41 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 templates = Jinja2Templates(directory="templates")
 
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.post("/generate/{name}")
+async def generate_request(name: str):
+    code = create_generation_request(name=name)
+    return RedirectResponse(url=f'/wait/{code}', status_code=status.HTTP_303_SEE_OTHER)
+
+
+@app.get ('/get-video-status/{code}')
+async def video_status(code: str):
+    return JSONResponse(content=get_video_status(code=code))
+
+
+@app.get('/video/{code}', response_class=FileResponse)
+async def get_video(code: str):
+    logger.info(f'Video {code} requested.')
+    return f"{PROCESSED_VIDEO_DIR}/{code}.mp4"
+
+
 @app.get("/", response_class=HTMLResponse)
 async def main_page(request: Request):
     logger.info(f'Main page visited. Visitor: {request.client.host}')
     return templates.TemplateResponse("main_template.html", {"request": request})
 
 
-@app.post("/generate/{name}")
-async def generate_request(name: str):
-    random_text = ", hello!"
-    text = name + random_text # TODO text = generate_text(name)
-    code = create_generation_request(text=text)
-    return RedirectResponse(url=f'/{code}', status_code=status.HTTP_303_SEE_OTHER)
+@app.get('/wait/{code}', response_class=HTMLResponse)
+async def wait_page(request: Request, code: str):
+    return templates.TemplateResponse("wait_template.html", {"request": request, "code": code})
 
 
 @app.get('/{code}', response_class=HTMLResponse)
@@ -37,10 +61,3 @@ async def get_video_page(request: Request, code: str):
     else:
         logger.info(f"Video page with invalid code: {code} visited. Redirecting to main page")
         return RedirectResponse(url='/')
-
-
-@app.get('/video/{code}', response_class=FileResponse)
-async def get_video(code: str):
-    logger.info(f'Video {code} requested.')
-    return f"{PROCESSED_VIDEO_DIR}/{code}.mp4"
-

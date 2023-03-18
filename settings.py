@@ -11,5 +11,5 @@ REDIS_CLIENT = redis.Redis(host='localhost', port=6379, db=0)
 
 # Names of redis storages
 REQUEST_QUEUE_LIST = "generation_queue"
-REQUEST_QUEUE_HASH = "generation_queue_hash"
+REQUEST_QUEUE_HASH = "generation_queue_data"
 VIDEO_CODES_SET = "stored_video_codes"

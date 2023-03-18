@@ -67,17 +67,17 @@ def create_generation_request(name: str) -> str:
 
 
 # Testing
-code_list = []
-while True:
-    command = input("command:")
-    if command == "st":
-        for code in code_list:
-            logger.info(f"Code: {code}, status: {get_video_status(code)}")
-    elif command =="red":
-        logger.debug(f"Generated: {REDIS_CLIENT.smembers(VIDEO_CODES_SET)}")
-        logger.debug(f"Queue: {REDIS_CLIENT.llen(REQUEST_QUEUE_LIST)}")
-        logger.debug(f"Queue hash: {REDIS_CLIENT.hgetall(REQUEST_QUEUE_HASH)}")
-    else:
-        new_code = create_generation_request(command)
-        code_list.append(new_code)
+# code_list = []
+# while True:
+#     command = input("command:")
+#     if command == "st":
+#         for code in code_list:
+#             logger.info(f"Code: {code}, status: {get_video_status(code)}")
+#     elif command =="red":
+#         logger.debug(f"Generated: {REDIS_CLIENT.smembers(VIDEO_CODES_SET)}")
+#         logger.debug(f"Queue: {REDIS_CLIENT.llen(REQUEST_QUEUE_LIST)}")
+#         logger.debug(f"Queue hash: {REDIS_CLIENT.hgetall(REQUEST_QUEUE_HASH)}")
+#     else:
+#         new_code = create_generation_request(command)
+#         code_list.append(new_code)
 
