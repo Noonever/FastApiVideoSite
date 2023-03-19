@@ -1,0 +1,128 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"strings"
+	"sync"
+	"time"
+
+	vidio "github.com/AlexEidt/Vidio"
+	"github.com/go-redis/redis/v8"
+)
+
+var sourceVideoFilesPath = os.Args[1]
+var resultVideoFilesPath = os.Args[2]
+
+func main() {
+
+	if len(os.Args) < 3 {
+		fmt.Printf("Usage: %s <sourceVideoFilesPath> <resultVideoFilesPath>", os.Args[0])
+	} else {
+		fmt.Printf("VideoProcessor is running! \nSourcePath: %s \nResultPath: %s", sourceVideoFilesPath, resultVideoFilesPath)
+	}
+
+	// Connect to Redis server
+	client := redis.NewClient(&redis.Options{
+		Addr: "localhost:6379",
+	})
+
+	// Set the maximum number of parallel workers
+	maxWorkers := 5
+
+	// Create a worker pool
+	var wg sync.WaitGroup
+	semaphore := make(chan struct{}, maxWorkers)
+
+	// Loop forever, processing codes of requests from the queue
+	for {
+		// Wait until there is a free slot in the worker pool
+		semaphore <- struct{}{}
+
+		// Fetch the next request code from the redis generaion_queue(list)
+		ctx := context.Background()
+		queue_result := client.BLPop(ctx, 0, "generation_queue")
+		if queue_result.Err() != nil {
+			fmt.Println("Error:", queue_result.Err())
+			continue
+		}
+		code := queue_result.Val()[1]
+
+		// Process the request in a separate goroutine
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			processVideo(code)
+
+			<-semaphore
+		}()
+	}
+}
+
+func processVideo(code string) {
+
+	// Connect to Redis server
+	client := redis.NewClient(&redis.Options{
+		Addr: "localhost:6379",
+	})
+	ctx := context.Background()
+
+	// Taking data of a request by its code from redis generaion_queue_data(hash)
+	hash_result := client.HGet(ctx, "generation_queue_data", code)
+	if hash_result.Err() != nil {
+		fmt.Println("Error:", hash_result.Err())
+	}
+	data := strings.Split(hash_result.Val(), "[,!,]")
+	// [,!,] is defined in request sender program for splitting string
+
+	text := data[0]
+	sourceVideoName := data[1]
+
+	timeStart := time.Now()
+	fmt.Println("Started processing, code:", code, timeStart.String())
+
+	// Simulate some CPU-bound work
+	GenerateVideo(code, sourceVideoName, text)
+
+	timeEnd := time.Now()
+	fmt.Println("Processed:", text, "code:", code, timeEnd.String())
+
+	// Deleting processed request from redis generaion_queue_data(hash)
+	delErr := client.HDel(ctx, "generation_queue_data", code)
+	if delErr.Err() != nil {
+		fmt.Println("Deleting error:", delErr.Err())
+	}
+
+	// Adding code of processed video to redis stored_video_codes(set)
+	addErr := client.SAdd(ctx, "stored_video_codes", code)
+	if addErr.Err() != nil {
+		fmt.Println("Adding error:", addErr.Err())
+	}
+}
+
+func GenerateVideo(code string, sourceVideoName string, text string) {
+
+	sourceVideoPath := fmt.Sprintf("%s/%s", sourceVideoFilesPath, sourceVideoName)
+
+	sourceVideo, _ := vidio.NewVideo(sourceVideoPath)
+	options := vidio.Options{
+		FPS:     sourceVideo.FPS(),
+		Bitrate: sourceVideo.Bitrate(),
+		Quality: 1,
+		Codec:   "h264",
+	}
+	if sourceVideo.HasStreams() {
+		options.StreamFile = sourceVideo.FileName()
+	}
+
+	outputFilePath := fmt.Sprintf("%s/%s.mp4", resultVideoFilesPath, code)
+	writer, _ := vidio.NewVideoWriter(outputFilePath, sourceVideo.Width(), sourceVideo.Height(), &options)
+
+	defer writer.Close()
+
+	for sourceVideo.Read() {
+		writer.Write(sourceVideo.FrameBuffer())
+	}
+
+}

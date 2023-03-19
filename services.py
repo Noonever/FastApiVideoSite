@@ -3,6 +3,10 @@ from string import ascii_uppercase
 import orjson
 from loguru import logger
 from settings import *
+import redis
+
+
+REDIS_CLIENT = redis.Redis(host='localhost', port=6379, db=0)
 
 
 def video_is_being_processed(code: str) -> bool:
@@ -40,10 +44,10 @@ def genetate_unique_code() -> str:
     return code
 
 
-def get_random_video_path() -> Path:
+def get_random_video_name() -> Path:
     video_paths = list(SOURCE_VIDEO_DIR.rglob("*.mp4"))
     random_path = choice(video_paths)
-    return random_path.absolute()
+    return random_path.name
 
 
 def get_random_phrase() -> str:
@@ -58,10 +62,9 @@ def create_generation_request(name: str) -> str:
     """
     code = genetate_unique_code()
     text = f"{name.capitalize()}, {get_random_phrase()}"
-    video_path = get_random_video_path()
-
+    source_video_name = get_random_video_name()
     REDIS_CLIENT.rpush(REQUEST_QUEUE_LIST, code)
-    REDIS_CLIENT.hset(REQUEST_QUEUE_HASH, code, f"{text}[,!,]{video_path}")
+    REDIS_CLIENT.hset(REQUEST_QUEUE_HASH, code, f"{text}[,!,]{source_video_name}")
     # "[,!,] is used for splitting string in video processing program"
     return code
 
