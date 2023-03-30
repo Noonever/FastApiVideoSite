@@ -2,12 +2,8 @@ from pathlib import Path
 
 
 BASE_DIR = Path(__file__).resolve(strict=True).parent
-BIN_FILE_PATH = BASE_DIR / 'videoProcessorBin/videoProcessor'
-SOURCE_VIDEO_DIR = BASE_DIR / 'media/source_videos'
-PROCESSED_VIDEO_DIR = BASE_DIR / 'media/processed_videos'
-PHRASES_FILE = BASE_DIR / 'media/phrases.json'
+VIDEO_DIR = BASE_DIR / "media"
+VIDEO_DATA_FILE = VIDEO_DIR / "video_data.json"
 
-# Names of redis storages
-REQUEST_QUEUE_LIST = "generation_queue"
-REQUEST_QUEUE_HASH = "generation_queue_data"
-VIDEO_CODES_SET = "stored_video_codes"
+# Name of redis storage
+STORED_PAGES_HASH = "pages"

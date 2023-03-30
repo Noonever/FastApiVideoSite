@@ -14,9 +14,14 @@
             PRE-SAVE ON SPOTIFY
         </button>
     </div>
+    <div class="container" id="text">
+        <p>
+            "{{ name }} {{ phrase }}"
+        </p>
+    </div>
     <div class="container">
         <video width="100%" controls loop>
-            <source src="http://localhost:8000/video/{{ code }}" type="video/mp4"/>
+            <source src="http://localhost:8000/video/{{ video_id }}" type="video/mp4"/>
         </video>
     </div>
     <div class="container">

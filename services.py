@@ -1,7 +1,6 @@
 from random import choice, choices
 from string import ascii_uppercase
 import orjson
-from loguru import logger
 from settings import *
 import redis
 
@@ -9,78 +8,50 @@ import redis
 REDIS_CLIENT = redis.Redis(host='localhost', port=6379, db=0)
 
 
-def video_is_being_processed(code: str) -> bool:
-    return REDIS_CLIENT.hexists(REQUEST_QUEUE_HASH, code)
-
-
-def video_is_stored(code: str) -> bool:
-    return REDIS_CLIENT.sismember(VIDEO_CODES_SET, code)
-
-
-def get_video_status(code: str) -> int:
-    """
-    Returns a video status by video code.
-    """
-    if video_is_being_processed(code):
-        return 2
-    elif video_is_stored(code):
-        return 0
-    else:
-        return 1
+def is_page_exists(code: str):
+    return REDIS_CLIENT.hexists(STORED_PAGES_HASH, code)
 
 
 def genetate_unique_code() -> str:
     """
-    Generates and returns a unique code for a new video
+    Generates and returns a unique code for a new page
     """
     length = 6
 
     while True:
         code = ''.join(choices(ascii_uppercase, k=length))
-        video_status = get_video_status(code=code)
-        if video_status == 1:
+        if not is_page_exists(code=code):
             break
 
     return code
 
 
-def get_random_video_name() -> Path:
-    video_paths = list(SOURCE_VIDEO_DIR.rglob("*.mp4"))
-    random_path = choice(video_paths)
-    return random_path.name
+def get_random_video_id() -> int:
+    pass
 
 
-def get_random_phrase() -> str:
-    with open(PHRASES_FILE, "rb") as f:
-        phrase = choice(orjson.loads(f.read()))
-    return phrase
+def get_video_phrase(video_id: int):
+    pass
 
 
-def create_generation_request(name: str) -> str:
+def create_page(name: str) -> str:
     """
-    Creates video generation request and returns its code
+    Creates a page with a unique code and writes its data to redis
     """
     code = genetate_unique_code()
-    text = f"{name.capitalize()}, {get_random_phrase()}"
-    source_video_name = get_random_video_name()
-    REDIS_CLIENT.rpush(REQUEST_QUEUE_LIST, code)
-    REDIS_CLIENT.hset(REQUEST_QUEUE_HASH, code, f"{text}[,!,]{source_video_name}")
-    # "[,!,] is used for splitting string in video processing program"
+    video_id = get_random_video_id()
+    data_string = f"{video_id}[,!,]{name}"
+    REDIS_CLIENT.hset(STORED_PAGES_HASH, code, data_string)
     return code
 
 
-# Testing
-# code_list = []
-# while True:
-#     command = input("command:")
-#     if command == "st":
-#         for code in code_list:
-#             logger.info(f"Code: {code}, status: {get_video_status(code)}")
-#     elif command =="red":
-#         logger.debug(f"Generated: {REDIS_CLIENT.smembers(VIDEO_CODES_SET)}")
-#         logger.debug(f"Queue: {REDIS_CLIENT.llen(REQUEST_QUEUE_LIST)}")
-#         logger.debug(f"Queue hash: {REDIS_CLIENT.hgetall(REQUEST_QUEUE_HASH)}")
-#     else:
-#         new_code = create_generation_request(command)
-#         code_list.append(new_code)
+def get_page_data(code: str) -> tuple[int, str, str]:
+    """
+    Returns a tuple of video_id, name, phrase
+    """
+    data = REDIS_CLIENT.hget(STORED_PAGES_HASH, code)
+    video_id, name = data.split("[,!,]")
+    phrase = get_video_phrase(video_id=video_id)
+    return video_id, name, phrase
+
 
